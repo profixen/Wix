@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright (c) .NET Foundation and contributors. All rights reserved. Licensed under the Microsoft Reciprocal License. See LICENSE.TXT file in the project root for full license information. -->
+
+
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <SigningToolExe>$(WIX_ROOT).tools\sign.exe</SigningToolExe>
+    <SigningCommand>code azure-key-vault</SigningCommand>
+    <SigningFilelist>$(MSBuildThisFileDirectory)signing-filter.none.txt</SigningFilelist>
+    <SigningConfiguration>--description "WiX Toolset" --description-url "https://wixtoolset.org/" --timestamp-url "http://timestamp.digicert.com" --file-list "$(SigningFilelist)" --azure-key-vault-url $(SigningKeyVaultUri) --azure-key-vault-tenant-id $(SigningTenantId) --azure-key-vault-client-id $(SigningClientId) --azure-key-vault-client-secret $(SigningClientSecret) --azure-key-vault-certificate $(SigningCertName)</SigningConfiguration>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- By default, $(TargetPath) will be signed. You can add files to @(FilesToSign) to sign them as well. -->
+    <FilesToSign Include="$(TargetPath)" />
+  </ItemGroup>
+
+  <Target Name="SignFiles" AfterTargets="AfterBuild" Condition="'$(SignOutput)'=='true'">
+    <Message Importance="high" Text="Signing file: %(FilesToSign.FullPath)" />
+
+    <Exec Command='"$(SigningToolExe)" $(SigningCommand) $(SigningConfiguration) "%(FilesToSign.FullPath)"'
+          WorkingDirectory="$(MSBuildProjectDirectory)" EchoOff="true" />
+  </Target>
+
+  <!--
+  ================================================================================================
+
+    Signing overrides to actually do signing. We don't sign the MSI packages or their CABs because
+    they are always wrapped in a bundle that is signed.
+
+  ================================================================================================
+  -->
+  <Target Name="SignCabs" />
+
+  <Target Name="SignMsi" />
+
+  <Target Name="SignContainers" />
+
+  <Target Name="SignBundleEngine">
+    <Message Importance="high" Text="Signing bundle engine: @(SignBundleEngine->&apos;%(Identity)&apos;)" />
+
+    <Exec Command='"$(SigningToolExe)" $(SigningCommand) $(SigningConfiguration) "@(SignBundleEngine->&apos;%(Identity)&apos;)"'
+          WorkingDirectory="$(MSBuildProjectDirectory)" EchoOff="true" />
+  </Target>
+
+  <Target Name="SignBundle">
+    <Message Importance="high" Text="Signing bundle: @(SignBundle->&apos;%(Identity)&apos;)" />
+
+    <Exec Command='"$(SigningToolExe)" $(SigningCommand) $(SigningConfiguration) "@(SignBundle->&apos;%(Identity)&apos;)"'
+          WorkingDirectory="$(MSBuildProjectDirectory)" EchoOff="true" />
+  </Target>
+
+  <!-- Sentinel value that indicates WixBuid.Signing.targets has been initialized. -->
+  <PropertyGroup>
+    <WixBuildSigningTargetsDefined>true</WixBuildSigningTargetsDefined>
+  </PropertyGroup>
+</Project>
